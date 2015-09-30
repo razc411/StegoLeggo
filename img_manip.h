@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
+#define BYTESIZE 8
+#define BMPINFO 1
+#define BMPV4   2
+#define BMPV5   3
 
 #pragma pack(push,1)
 struct BMP_FHDR
@@ -15,12 +20,12 @@ struct BMP_FHDR
 #pragma pack(push,1)
 struct BITMAPV5HDR
 {
-    uint32_t dib_hdr_size;
-    uint32_t imgwidth;
-    uint32_t imgheight;
-    uint16_t planes;
-    uint16_t bitsprpixel;
-    uint32_t compression;
+    uint32_t hdr_size;
+    uint32_t bmwidth_pixels;
+    uint32_t bmheight_pixels;
+    uint16_t num_cpanes;
+    uint16_t bits_per_pixel;
+    uint32_t compression_mthd;
     uint32_t image_size;
     uint32_t xpm; //x per meter
     uint32_t ypm; //y per meter
@@ -45,17 +50,17 @@ struct BITMAPV5HDR
 #pragma pack(push,1)
 struct BITMAPV4HDR
 {
-    uint32_t dib_hdr_size;
-    uint32_t width_pixels;
-    uint32_t height_pixels;
-    uint16_t num_color_panes;
+    uint32_t hdr_size;
+    uint32_t bmwidth_pixels;
+    uint32_t bmheight_pixels;
+    uint16_t num_cpanes;
     uint16_t bits_per_pixel;
-    uint32_t compression;
-    uint32_t raw_size;
-    uint32_t print_res_horz;
-    uint32_t print_res_vert;
+    uint32_t compression_mthd;
+    uint32_t image_size;
+    uint32_t bmheight;
+    uint32_t bmwidth;
     uint32_t num_colors;
-    uint32_t imp_colors;
+    uint32_t num_colors_imp;
     uint32_t red_channel;
     uint32_t green_channel;
     uint32_t blue_channel;
@@ -64,7 +69,7 @@ struct BITMAPV4HDR
     uint32_t cs_endpoints;
     uint32_t red_gamma;
     uint32_t green_gamma;
-    uint32_t blue_gamma
+    uint32_t blue_gamma;
 };
 #pragma pack(pop)
 
@@ -85,7 +90,9 @@ struct BITINFOHDR
 };
 #pragma pack(pop)
 
-int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t ** pixels);
-
+int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t *** pixels);
+void grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image, uint32_t *** pixels);
+int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
+int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32_t  *** pixels);
     
    
