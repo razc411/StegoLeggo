@@ -90,9 +90,9 @@ struct BITINFOHDR
 };
 #pragma pack(pop)
 
-int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t *** pixels);
-void grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image, uint32_t *** pixels);
+int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t * pixels);
+uint32_t * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
 int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
-int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32_t  *** pixels);
+int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32_t  * pixels, char * filename);
     
    
