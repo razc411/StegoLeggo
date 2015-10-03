@@ -2,11 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define BYTESIZE 8
-#define BMPINFO 1
-#define BMPV4   2
-#define BMPV5   3
-
 #pragma pack(push,1)
 struct BMP_FHDR
 {
@@ -90,9 +85,26 @@ struct BITINFOHDR
 };
 #pragma pack(pop)
 
-int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t * pixels);
-uint32_t * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
+
+#define BYTESIZE 8
+#define BMPINFO 1
+#define BMPV4   2
+#define BMPV5   3
+#define MAXFNAME 1000
+#define INTBITSIZE 32
+#define CLEAR_BIT(number, x) (number &= ~(1 << x))
+
+int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char *  pixels);
+unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
 int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
-int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32_t  * pixels, char * filename);
-    
-   
+int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename);
+int decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels);
+
+unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to) /*  */
+{
+    int bit;
+    bit = (c1 >> from) & 1;            /* Get the source bit as 0/1 value */
+    c2 &= ~(1 << to);                  /* clear destination bit */
+    return (unsigned char)(c2 | (bit << to));  /* set destination bit */
+}
+

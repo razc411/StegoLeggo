@@ -12,11 +12,12 @@ int main(int argc, char ** argv)
     size_t i, n;
     int type;
     FILE *image;
-    uint32_t * pixels;
+    unsigned char * pixels;
     struct BMP_FHDR fhdr;
     struct BITINFOHDR infohdr;
     char filename[1024];
     char path[1024];
+    size_t size;
     
     if(argc < 2)
     {
@@ -29,15 +30,10 @@ int main(int argc, char ** argv)
 	printf("Failed to open file %s.\n", argv[1]);
 	exit(1);
     }
-
-    //grab filename
-    sprintf(path, "/proc/self/fd/%d", image);
-    memset(filename, 0, sizeof(filename));
-    readlink(path, filename, sizeof(filename) - 1);
     
     fread(&fhdr, sizeof(struct BMP_FHDR), 1, image);
     fread(&infohdr, sizeof(struct BITINFOHDR), 1, image);
-
+    printf("%d num colors\n", infohdr.num_colors);
     printf("%d bits per pixel\n", infohdr.bits_per_pixel);
 
     type = checkbmp_type(&infohdr, &fhdr);
@@ -46,11 +42,21 @@ int main(int argc, char ** argv)
     {
 	printf("Must be a 32-bit image. Image is %d-bit\n", infohdr.bits_per_pixel);
 	
+    }
     
-    if(type == BMPINFO && (strcmp(argv[1], "encode") == 0))
+    if(type == BMPINFO)
     {
-	pixels = grab_bmpinfo_pixels(&infohdr, image);
-	//encode_data_basic(&infohdr, &fhdr, pixels, filename);
+	if(strcmp(argv[1], "encode") == 0)
+	{
+	    pixels = grab_bmpinfo_pixels(&infohdr, image);
+	    encode_data_basic(&infohdr, &fhdr, pixels, argv[3]);
+	}
+	else if(strcmp(argv[1], "decode") == 0)
+	{
+	    pixels = grab_bmpinfo_pixels(&infohdr, image);
+	    decode_data_basic(&infohdr, &fhdr, pixels);
+	    printf("%d size\n", size);
+	}
     }
     else
     {
@@ -61,14 +67,14 @@ int main(int argc, char ** argv)
     fclose(image);
 }
 
-int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32_t * pixels, char * filename)
+int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename)
 {
     //bit = (number >> x) & 1; checking a bit
     //number ^= (-x ^ number) & (1 << n); setting the n bit to x
-    uint32_t c, i, n = 0, bit;
-    char size[50];
-    char echar;
+    uint32_t c, i, n = 0, bit, p;
+    unsigned char echar;
     int esize;
+    int pixelbit;
     
     FILE * encode_data;
     if(!(encode_data = fopen(filename, "rb")))
@@ -81,67 +87,120 @@ int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, uint32
     esize = ftell(encode_data);
     fseek(encode_data, 0, SEEK_SET);
 
-    if(infohdr.image_size/BYTESIZE > esize)
+    if(infohdr->image_size/BYTESIZE < esize)
     {
-	printf("File to encode is too large.\nEncoded file size: %d\nImage Capacity: %d\n", esize, infohdr.image_size/BYTESIZE);
+	printf("File to encode is too large.\nEncoded file size: %d\nImage Capacity: %d\n", esize, infohdr->image_size/BYTESIZE);
 	exit(1);
     }
 
     //filename
     for(c = 0; c < strlen(filename) + 1; c++)
     {
-	for(i = 0; i < BYTESIZE; i++)
-	{
-	    for(; i  < sizeof(uint32_t)/BYTESIZE; n++)
-	    {
-		bit = (filename[c] >> i) & 1;
-		pixels[n] ^= (-bit ^ pixels[n]) & (1 << i);
-	    }
-	}
+    	for(p = 0; p < BYTESIZE; p++)
+    	{
+    	    pixels[n] = move_bit(filename[c], p, pixels[n], 0);
+    	    n++;
+    	}
     }
 
-    //encode size of file
-    for(i = 0; i < BYTESIZE; i++)
+    //set the file size
+    p = 0;
+    for(c = 0; c < sizeof(uint32_t); c++)
     {
-	for(; i  < sizeof(uint32_t)/BYTESIZE; n++)
-	{
-	    bit = (esize >> i) & 1;
-	    pixels[n] ^= (-bit ^ pixels[n]) & (1 << i);
-	}
+    	for(; p < INTBITSIZE; p++)
+    	{
+    	    pixels[n] = move_bit(esize, p, pixels[n], 0);
+	    n++;
+    	}
     }
-    pixels[++n] = NULL;
-
-    //encode data
-    while((echar = fgetc(encode_data)) != EOF)
+    
+    //set the null terminator
+    for(p = 0; p < BYTESIZE; p++)
     {
-	for(i = 0; i < BYTESIZE; i++)
-	{
-	    for(; i  < sizeof(uint32_t)/BYTESIZE; n++)
-	    {
-		bit = (echar >> i) & 1;
-		pixels[n] ^= (-bit ^ pixels[n]) & (1 << i);
-	    }
-	}
+	CLEAR_BIT(pixels[n], 0);
+	n++;
+    }
+
+    //set the encode data
+    for(c = 0; c < esize; c++)
+    {
+    	echar = fgetc(encode_data);
+	for(p = 0; p < BYTESIZE; p++)
+    	{
+    	    pixels[n] = move_bit(echar, p, pixels[n], 0);
+    	    n++;
+    	}
     }
 
     write_bmpi(fhdr, infohdr, pixels);
     free(pixels);
 }
 
-uint32_t * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
+int decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels)
+{
+    //bit = (number >> x) & 1; checking a bit
+    //number ^= (-x ^ number) & (1 << n); setting the n bit to x
+    uint32_t p, c, i, n = 0, bit;
+    char echar;
+    int esize;
+    char filename[1000];
+
+    memset(filename, 0, 1000);
+    
+    for(c = 0; c < MAXFNAME; c++)
+    {
+	for(p = 0; p < BYTESIZE; p++)
+	{
+	    filename[c] = move_bit(pixels[n], 0, filename[c], p);
+	    n++;
+	}
+	printf("%c char\n", filename[c]);
+	if(filename[c] == '\0')
+	{
+	    break;
+	}
+    }
+
+    printf("filename = %s", filename);
+
+    p = 0;
+    for(c = 0; c < sizeof(uint32_t); c++)
+    {
+	for(; p < BYTESIZE; p++)
+	{
+	    pixels[n] = move_bit(pixels[n], 0, esize, p);
+	    n++;
+	}
+    }
+
+    printf("File size = %d", esize);
+           
+    /* for(c = 0; c < size; c++) */
+    /* { */
+    /* 	for(p = 0; p < BYTESIZE; p++) */
+    /* 	{ */
+    /* 	    pixels[n] = move_bit(echar, p, pixels[n], 0); */
+    /* 	    n++; */
+    /* 	} */
+    /* } */
+    
+    //write_bmpi(fhdr, infohdr, pixels);
+    free(pixels);
+}
+
+unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
 {
     size_t i;
-    size_t image_size = (infohdr->bmwidth_pixels * infohdr->bmheight_pixels);
-    uint32_t * pixels = malloc(sizeof(uint32_t*) * image_size);
-    for(i = 0; i < image_size; i++)
+    unsigned char * pixels = malloc(infohdr->image_size);
+    for(i = 0; i < infohdr->image_size; i++)
     {
-	fread(&pixels[i], sizeof(uint32_t), 1, image);
+	fread(&pixels[i], sizeof(unsigned char), 1, image);
     }
 
     return pixels;
 }
 
-int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t * pixels)
+int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char * pixels)
 {
     FILE *img_writer;
     img_writer = fopen("newimg.bmp", "wb");
@@ -153,7 +212,7 @@ int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, uint32_t * p
 
     fwrite(fhdr, 1, sizeof(struct BMP_FHDR), img_writer);
     fwrite(infohdr, 1, sizeof(struct BITINFOHDR), img_writer);
-    fwrite(pixels, 1, sizeof(uint32_t) * infohdr->bmheight_pixels  * infohdr->bmwidth_pixels, img_writer);
+    fwrite(pixels, 1, infohdr->image_size, img_writer);
 
     fclose(img_writer);
 }
