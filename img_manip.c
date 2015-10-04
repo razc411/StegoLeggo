@@ -9,15 +9,11 @@
 
 int main(int argc, char ** argv)
 {
-    size_t i, n;
     int type;
     FILE *image;
     unsigned char * pixels;
     struct BMP_FHDR fhdr;
     struct BITINFOHDR infohdr;
-    char filename[1024];
-    char path[1024];
-    size_t size;
     
     if(argc < 2)
     {
@@ -33,8 +29,6 @@ int main(int argc, char ** argv)
     
     fread(&fhdr, sizeof(struct BMP_FHDR), 1, image);
     fread(&infohdr, sizeof(struct BITINFOHDR), 1, image);
-    printf("%d num colors\n", infohdr.num_colors);
-    printf("%d bits per pixel\n", infohdr.bits_per_pixel);
 
     type = checkbmp_type(&infohdr, &fhdr);
 
@@ -55,7 +49,6 @@ int main(int argc, char ** argv)
 	{
 	    pixels = grab_bmpinfo_pixels(&infohdr, image);
 	    decode_data_basic(&infohdr, &fhdr, pixels);
-	    printf("%d size\n", size);
 	}
     }
     else
@@ -69,9 +62,7 @@ int main(int argc, char ** argv)
 
 int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename)
 {
-    //bit = (number >> x) & 1; checking a bit
-    //number ^= (-x ^ number) & (1 << n); setting the n bit to x
-    uint32_t c, i, n = 0, bit, p;
+    uint32_t c, i = 0, n = 0, bit, p;
     unsigned char echar;
     int esize;
     int pixelbit;
@@ -99,7 +90,7 @@ int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsign
     	for(p = 0; p < BYTESIZE; p++)
     	{
     	    pixels[n] = move_bit(filename[c], p, pixels[n], 0);
-    	    n++;
+	    n++;
     	}
     }
 
@@ -114,13 +105,6 @@ int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsign
     	}
     }
     
-    //set the null terminator
-    for(p = 0; p < BYTESIZE; p++)
-    {
-	CLEAR_BIT(pixels[n], 0);
-	n++;
-    }
-
     //set the encode data
     for(c = 0; c < esize; c++)
     {
@@ -138,52 +122,44 @@ int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsign
 
 int decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels)
 {
-    //bit = (number >> x) & 1; checking a bit
-    //number ^= (-x ^ number) & (1 << n); setting the n bit to x
-    uint32_t p, c, i, n = 0, bit;
-    char echar;
-    int esize;
-    char filename[1000];
+    uint32_t p, c, n = 0;
+    uint32_t esize = 0;
+    unsigned char filename[1000];
 
     memset(filename, 0, 1000);
-    
+
     for(c = 0; c < MAXFNAME; c++)
     {
 	for(p = 0; p < BYTESIZE; p++)
 	{
-	    filename[c] = move_bit(pixels[n], 0, filename[c], p);
-	    n++;
+	    filename[c] = move_bit(pixels[n++], 0, filename[c], p);
 	}
-	printf("%c char\n", filename[c]);
 	if(filename[c] == '\0')
 	{
 	    break;
 	}
     }
 
-    printf("filename = %s", filename);
-
-    p = 0;
-    for(c = 0; c < sizeof(uint32_t); c++)
+    printf("File to be decoded: %s\n", filename);
+    
+    for(p = 0; p < 32; p++)
     {
-	for(; p < BYTESIZE; p++)
-	{
-	    pixels[n] = move_bit(pixels[n], 0, esize, p);
-	    n++;
-	}
+	esize = move_bit(pixels[n++], 0, esize, p);
+    }
+    printf("File Size:  %d", esize);
+
+    unsigned char encoded_data[esize];
+    memset(encoded_data, 0, esize);
+    
+    for(c = 0; c < esize; c++)
+    {
+    	for(p = 0; p < BYTESIZE; p++)
+    	{
+    	    encoded_data[c] = move_bit(pixels[n++], 0, encoded_data[c], p);
+    	}
     }
 
-    printf("File size = %d", esize);
-           
-    /* for(c = 0; c < size; c++) */
-    /* { */
-    /* 	for(p = 0; p < BYTESIZE; p++) */
-    /* 	{ */
-    /* 	    pixels[n] = move_bit(echar, p, pixels[n], 0); */
-    /* 	    n++; */
-    /* 	} */
-    /* } */
-    
+    printf("\ndata %s\n", encoded_data);
     //write_bmpi(fhdr, infohdr, pixels);
     free(pixels);
 }
