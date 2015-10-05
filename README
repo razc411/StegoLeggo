@@ -1,1 +1,22 @@
-LOL
+README CovertData (StegoLego)
+=================================
+Simple program for using stegonography to hide data within BMP images. Uses LSB encoding to store the data. Each BMP image can store a max of their pixel size divided by 8. 
+
+Has an encode and decode mode to use:
+    covertdata encode "filename.bmp" "data_to_encode"
+    covertdata decode "filanem.bmp" "name_of_output"
+
+Decode will print out the original file name of the encoded data.
+
+Requires
+   gcc
+   Linux
+
+To Compile
+   gcc *.c -o covertdata
+
+Included
+   img_manip.h
+   img_manip.c
+   
+
