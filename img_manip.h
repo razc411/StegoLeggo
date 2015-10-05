@@ -90,15 +90,20 @@ struct BITINFOHDR
 #define BMPINFO 1
 #define BMPV4   2
 #define BMPV5   3
+#define HEADER 0
+#define DATA 1
 #define MAXFNAME 1000
+#define MAXSIZE 100
 #define INTBITSIZE 32
 #define CLEAR_BIT(number, x) (number &= ~(1 << x))
 
+unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data);
+unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int headerflag);
 int write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char *  pixels);
 unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
 int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
-int encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename);
-int decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels);
+void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename);
+void decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * output);
 
 unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to) /*  */
 {
