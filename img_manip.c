@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
     if(infohdr.bits_per_pixel != 32)
     {
 	printf("Must be a 32-bit image. Image is %d-bit\n", infohdr.bits_per_pixel);
-	
+	exit(1);
     }
     
     if(type == BMPINFO)
@@ -162,12 +162,13 @@ void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsig
 */
 unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data)
 {
-    int c, p;
+    size_t c, p;
     for(c = 0; c < strlen(data) + 1; c++)
     {
     	for(p = 0; p < BYTESIZE; p++)
     	{
-    	    pixels[pos++] = move_bit(data[c], p, pixels[pos], 0);
+    	    pixels[pos] = move_bit(data[c], p, pixels[pos], 0);
+	    pos++;
     	}
     }
 
@@ -319,13 +320,11 @@ int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr)
     }
 
     //checking the bitmap header type
-    int remainder;
-    if((remainder = (fhdr->size - sizeof(struct BMP_FHDR) - infohdr->hdr_size)) == infohdr->image_size)
+    if(infohdr->hdr_size == 40)
     {
-	 return BMPINFO;
+	return BMPINFO;
     }
 
-    printf("This bitmap format is not supported.\n");
     return 0;
 }
 /*
