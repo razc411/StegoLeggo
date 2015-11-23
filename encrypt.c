@@ -10,16 +10,16 @@ void genRandom(void * buffer, int buffer_len);
 
 int main(){
 
-    char * str = "12345678922dddd3dddd456";
+    char * str = "12345678922dddd3456";
     char * algorithm = "rijndael-128";
     char * buffer = calloc(1, strlen(str));
     int length = strlen(str);
     strncpy(buffer, str, strlen(str));
 
     printf("Plaintext: %s\n", str);
-    length = encrypt_data(algorithm, buffer, strlen(str));
-    decrypt_data(buffer, length);
-    printf("Decryptedtext: %sn\n", buffer, length);
+    length = encrypt_data(algorithm, &buffer, strlen(str));
+    decrypt_data(&buffer, length);
+    printf("Decryptedtext: %s\n", buffer);
     
     return 0;
 }
@@ -34,7 +34,7 @@ int main(){
 *       symmeteric encryption. Allows for a choice of algorithm, but uses cipher block
 *       chaining with it.
 */
-int encrypt_data(char * algorithm, char * buffer, int buffer_len) {
+int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 
     int remainder = 0;
     
@@ -45,7 +45,7 @@ int encrypt_data(char * algorithm, char * buffer, int buffer_len) {
     if((remainder = (buffer_len % blocksize)) != 0){
 	printf("Padding final block, %d bytes short.\n", blocksize - remainder);
 	buffer_len = buffer_len + (blocksize - remainder);
-	buffer = realloc(buffer, buffer_len);
+	*buffer = realloc(*buffer, buffer_len);
 
 	int i;
 	for(i = buffer_len - (blocksize - remainder); i < buffer_len; i++){
@@ -73,15 +73,16 @@ int encrypt_data(char * algorithm, char * buffer, int buffer_len) {
 
     char * block_buffer = malloc(blocksize);
     char * temp = malloc(buffer_len);
+
     int data_read = 0;
-    while(data_read < buffer_len - 1){
-	memcpy(block_buffer, buffer + data_read, blocksize);
+    while(data_read < buffer_len){
+	memcpy(block_buffer, *buffer + data_read, blocksize);
 	mcrypt_generic (td, block_buffer, blocksize);
 	memcpy(temp + data_read, block_buffer, blocksize);
-	data_read += blocksize - 1;
+	data_read += blocksize;
     }
 
-    buffer = temp;
+    *buffer = temp;
     
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
@@ -96,8 +97,8 @@ void genRandom(void * buffer, int buffer_len){
     int i, readLen = 0, res = 0;
     int devRand = open("/dev/random", O_RDONLY);
     
-    while(readLen < sizeof(buffer)){
-	res = read(devRand, buffer + readLen, (sizeof(buffer)) - readLen);
+    while(readLen < buffer_len){
+	res = read(devRand, buffer + readLen, (buffer_len - readLen));
 	if(res < 0){
 	    printf("Failed to read data from dev rand.");
 	    exit(1);
@@ -147,7 +148,7 @@ int writeKeyToFile(char * IV, int iv_len,  char * key, int key_len, char * algor
 *       symmeteric encryption. Allows for a choice of algorithm, but uses cipher block
 *       chaining with it.
 */
-int decrypt_data(char * buffer, int buffer_len) {
+int decrypt_data(char ** buffer, int buffer_len) {
 
     int key_len = 0, iv_len = 0;
     size_t len = 0;
@@ -195,14 +196,14 @@ int decrypt_data(char * buffer, int buffer_len) {
 
     while(data_read < buffer_len){
 
-	memcpy(block_buffer, buffer + data_read, blocksize);
+	memcpy(block_buffer, *buffer + data_read, blocksize);
 	mdecrypt_generic(td, block_buffer, blocksize);
 	memcpy(temp + data_read, block_buffer, blocksize);
 
 	data_read += blocksize;
     }
 
-    buffer = temp;
+    *buffer = temp;
 
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
