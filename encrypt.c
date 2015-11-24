@@ -1,28 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <mcrypt.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-int scanToNextLine(FILE * fp);
-void genRandom(void * buffer, int buffer_len);
-
-int main(){
-
-    char * str = "12345678922dddd3456";
-    char * algorithm = "rijndael-128";
-    char * buffer = calloc(1, strlen(str));
-    int length = strlen(str);
-    strncpy(buffer, str, strlen(str));
-
-    printf("Plaintext: %s\n", str);
-    length = encrypt_data(algorithm, &buffer, strlen(str));
-    decrypt_data(&buffer, length);
-    printf("Decryptedtext: %s\n", buffer);
-    
-    return 0;
-}
+#include "img_manip.h"
 /*
 *	Function: 	int encrypt_data(char * algorithm, void * buffer, int buffer_len)
 *	Author: 	Ramzi Chennafi and Chris Hunter
@@ -49,7 +25,7 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 
 	int i;
 	for(i = buffer_len - (blocksize - remainder); i < buffer_len; i++){
-	    buffer[i] = '\0';
+	    (*buffer)[i] = '\0';
 	}
     }
 

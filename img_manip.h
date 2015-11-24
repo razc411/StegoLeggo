@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mcrypt.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #pragma pack(push,1)
 struct BMP_FHDR
@@ -41,12 +44,16 @@ struct BITINFOHDR
 #define MAXFNAME 1000
 #define MAXSIZE 100
 
-unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data);
-unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int headerflag);
-void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char *  pixels);
-unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
+int decrypt_data(char ** buffer, int buffer_len);
+void genRandom(void * buffer, int buffer_len);
+int encrypt_data(char * algorithm, char ** buffer, int buffer_len);
+int writeKeyToFile(char * IV, int iv_len,  char * key, int key_len, char * algorithm);
+char * insert_encode_data(char * pixels, char * data);
+char * grab_decode_header(char * pixels, int maxsize, int headerflag);
+void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, char *  pixels);
+char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
 int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
-void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename);
-void decode_data_basic(unsigned char * pixels, char * output);
-unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to);
+void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * pixels, char * filename);
+void decode_data_basic(char * pixels, char * output);
+char move_bit(char c1, int from, char c2, int to);
 

@@ -39,10 +39,11 @@ static int pos = 0;
 int main(int argc, char ** argv)
 {
     int type;
-    FILE *image;
-    unsigned char * pixels;
+    char * pixels;
+    FILE * image;
     struct BMP_FHDR fhdr;
     struct BITINFOHDR infohdr;
+    char * algorithm = "rijndael-128";
     
     if(argc < 2)
     {
@@ -72,12 +73,12 @@ int main(int argc, char ** argv)
 	if(strcmp(argv[1], "encode") == 0)
 	{
 	    pixels = grab_bmpinfo_pixels(&infohdr, image);
-	    encode_data_basic(&infohdr, &fhdr, pixels, argv[3]);
+	    encode_data_basic(algorithm, &infohdr, &fhdr, &pixels, argv[3]);
 	}
 	else if(strcmp(argv[1], "decode") == 0)
 	{
 	    pixels = grab_bmpinfo_pixels(&infohdr, image);
-	    decode_data_basic(pixels, argv[3]);
+	    decode_data_basic(&pixels, argv[3]);
 	}
     }
     else
@@ -103,25 +104,20 @@ int main(int argc, char ** argv)
 *         unsigned char * pixels - the pixel array of the bitmap file
 *         char * filename - the filename of the data to encode into the image
 */
-void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename)
+void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char ** pixels, char * filename)
 {
-    unsigned char strsize[100];
+    char strsize[100];
     int esize;
     pos = 0;
     
     memset(strsize, 0, 100);
     
     FILE * encode_data;
-    if(!(encode_data = fopen(filename, "rb")))
+    if(!(encode_data = fopen(filename, "rb+")))
     {
 	printf("Failed to open data to encode.\n");
 	exit(1);
     }
-
-    fseek(encode_data, 0, SEEK_END);
-    esize = ftell(encode_data);
-    fseek(encode_data, 0, SEEK_SET);
-    sprintf(strsize, "%d", esize);
     
     if(infohdr->image_size/BYTESIZE < esize)
     {
@@ -130,18 +126,26 @@ void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsig
     }
 
     printf("Encoding data from file %s into the image.\n", filename);
-    printf("Data Size: %d\n", esize);
     printf("Image Max Encoding Size: %d\n", infohdr->image_size/BYTESIZE);
-    
-    unsigned char data[esize];
-    fread(data, sizeof(unsigned char), esize, encode_data);
+     
+    fseek(encode_data, 0, SEEK_END);
+    esize = ftell(encode_data);
+    fseek(encode_data, 0, SEEK_SET);
 
+    char * data = malloc(esize);
+    fread(data, 1, esize, encode_data);
+
+    esize = encrypt_data(algorithm, &data, esize);
+    printf("Data Size: %d\n", esize);
+    
+    sprintf(strsize, "%d", esize);
+    
     //filename
-    pixels = insert_encode_data(pixels, filename);
+    pixels = insert_encode_data(&pixels, filename);
     //set the file size
-    pixels = insert_encode_data(pixels, strsize);
+    pixels = insert_encode_data(&pixels, strsize);
     //set the encode data
-    pixels = insert_encode_data(pixels, data);
+    insert_encode_data(&pixels, data);
 
     write_bmpi(fhdr, infohdr, pixels);
 
@@ -160,7 +164,7 @@ void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsig
 *           unsigned char * pixels - the pixel array
 *           unsigned char * data - the data to put into the pixel array
 */
-unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data)
+char * insert_encode_data(char * pixels, char * data)
 {
     size_t c, p;
     for(c = 0; c < strlen(data) + 1; c++)
@@ -185,26 +189,29 @@ unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data)
 *          unsigned char * pixels - the pixel array to retrieve data from
 *          char * output - the name of the file to output retrieved data to
 */
-void decode_data_basic(unsigned char * pixels, char * output)
+void decode_data_basic(char * pixels, char * output)
 {
     int esize = 0;
-    unsigned char * filename;
-    unsigned char * fsize;
+    char * filename;
+    char * fsize;
     FILE * decode_writer;
     pos = 0;
 
     filename = grab_decode_header(pixels, MAXFNAME, HEADER);
     fsize = grab_decode_header(pixels, MAXSIZE, HEADER); 
     sscanf(fsize, "%d", &esize);
-   
-    unsigned char * encoded_data;
+
+    
+    char * encoded_data = malloc(esize);
     encoded_data = grab_decode_header(pixels, esize, DATA);
+
+    decrypt_data(&encoded_data, esize);
     
     printf("File to be decoded: %s\n", filename);
     printf("File Size:  %d\n", esize);
     printf("Saving file as... %s\n", output);
 
-    if(!(decode_writer = fopen(output, "wb")))
+    if(!(decode_writer = fopen(output, "wb+")))
     {
 	printf("Failed to decode file.\n");
 	exit(1);
@@ -228,10 +235,10 @@ void decode_data_basic(unsigned char * pixels, char * output)
 *            int maxsize - the size of the array to retrieve from the pixels
 *            int headerflag - can be set to DATA or HEADER based on the data you want
 */
-unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int headerflag)
+char * grab_decode_header(char * pixels, int maxsize, int headerflag)
 {
     int c, p;
-    unsigned char * temparray = malloc(maxsize);
+    char * temparray = malloc(maxsize);
     memset(temparray, 0, maxsize);
 
     for(c = 0; c < maxsize; c++)
@@ -259,7 +266,7 @@ unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int head
 *           struct BITINFOHDR * infohdr - the info header of the bitmap file
 *           FILE * image - a file pointer to the image data to retrieve pixels from
 */			      
-unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
+char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
 {
     size_t i;
     unsigned char * pixels = malloc(infohdr->image_size);
@@ -282,7 +289,7 @@ unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
 *             struct BITINFOHDR * infohdr - the info header of the bitmap
 *             unsigned char * pixels - the pixel array to write
 */
-void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char * pixels)
+void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, char * pixels)
 {
     FILE *img_writer;
     img_writer = fopen("encoded_image.bmp", "wb");
@@ -336,10 +343,10 @@ int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr)
 *	Notes
 *       Changes the "to" bit of c2 to the bit of c1 at "from". Returns the modified character.
 */
-unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to)
+char move_bit(char c1, int from, char c2, int to)
 {
     int bit;
     bit = (c1 >> from) & 1;            /* Get the source bit as 0/1 value */
     c2 &= ~(1 << to);                  /* clear destination bit */
-    return (unsigned char)(c2 | (bit << to));  /* set destination bit */
+    return (char)(c2 | (bit << to));  /* set destination bit */
 }
