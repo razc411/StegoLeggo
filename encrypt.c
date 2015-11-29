@@ -12,11 +12,11 @@
 */
 int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 
-    int remainder = 0;
-    
+    int remainder = 0, data_read = 0;
     MCRYPT td = mcrypt_module_open(algorithm, NULL, "cbc", NULL);
     int blocksize = mcrypt_enc_get_block_size(td);
-    
+    char * block_buffer = malloc(blocksize);
+
     //padding for block ciphers
     if((remainder = (buffer_len % blocksize)) != 0){
 	printf("Padding final block, %d bytes short.\n", blocksize - remainder);
@@ -47,18 +47,14 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
     //encrypt and return
     mcrypt_generic_init(td, key, key_len, IV);
 
-    char * block_buffer = malloc(blocksize);
-    char * temp = malloc(buffer_len);
-
-    int data_read = 0;
     while(data_read < buffer_len){
+
 	memcpy(block_buffer, *buffer + data_read, blocksize);
 	mcrypt_generic (td, block_buffer, blocksize);
-	memcpy(temp + data_read, block_buffer, blocksize);
+	memcpy(*buffer + data_read, block_buffer, blocksize);
+
 	data_read += blocksize;
     }
-
-    *buffer = temp;
     
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
@@ -128,9 +124,9 @@ int decrypt_data(char ** buffer, int buffer_len) {
 
     int key_len = 0, iv_len = 0;
     size_t len = 0;
-    void * key, * IV;
+    char * key, * IV;
     char * algorithm = NULL;
-    
+  
     FILE * keyFile;
     if(!(keyFile = fopen("stglg.key", "r+"))){
 	printf("Failed to open file for key writing");
@@ -140,7 +136,7 @@ int decrypt_data(char ** buffer, int buffer_len) {
     //get alg
     getline(&algorithm, &len, keyFile);
     algorithm[strlen(algorithm) - 1] = '\0';
-
+ 
     //get iv
     fscanf(keyFile, "%d", &iv_len);
     fgetc(keyFile); // skips newline
@@ -158,7 +154,6 @@ int decrypt_data(char ** buffer, int buffer_len) {
     MCRYPT td = mcrypt_module_open(algorithm, NULL, "cbc", NULL);
     int blocksize = mcrypt_enc_get_block_size(td);
     
-
     if(buffer_len % blocksize != 0){
     	printf("Incorrect data size for block ciphers.");
     	return 1;
@@ -166,20 +161,18 @@ int decrypt_data(char ** buffer, int buffer_len) {
   
     mcrypt_generic_init(td, key, key_len, IV);
 
-    char * temp = malloc(buffer_len);
-    char * block_buffer = malloc(blocksize);
+    char * block_buffer = calloc(1, blocksize);
     size_t data_read = 0;
 
     while(data_read < buffer_len){
 
 	memcpy(block_buffer, *buffer + data_read, blocksize);
 	mdecrypt_generic(td, block_buffer, blocksize);
-	memcpy(temp + data_read, block_buffer, blocksize);
+	memcpy(*buffer + data_read, block_buffer, blocksize);
 
 	data_read += blocksize;
     }
 
-    *buffer = temp;
 
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);

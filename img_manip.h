@@ -48,12 +48,12 @@ int decrypt_data(char ** buffer, int buffer_len);
 void genRandom(void * buffer, int buffer_len);
 int encrypt_data(char * algorithm, char ** buffer, int buffer_len);
 int writeKeyToFile(char * IV, int iv_len,  char * key, int key_len, char * algorithm);
-char * insert_encode_data(char * pixels, char * data);
-char * grab_decode_header(char * pixels, int maxsize, int headerflag);
-void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, char *  pixels);
-char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
+void insert_encode_data(char * data);
+char * grab_decode_header(int maxsize, int headerflag);
+void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr);
+void grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
 int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr);
-void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * pixels, char * filename);
-void decode_data_basic(char * pixels, char * output);
+void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * filename);
+void decode_data_basic(char * output);
 char move_bit(char c1, int from, char c2, int to);
 
