@@ -1,22 +1,31 @@
 README CovertData (StegoLego)
 =================================
-Simple program for using stegonography to hide data within BMP images. Uses LSB encoding to store the data. Each BMP image can store a max of their pixel size divided by 8. 
+Stegolego hides encrypted data within an image and produces time values for each calculation.
+Allows the use of multiple symmetric algorithms including tripledes, two fish and rjindael.
 
-Has an encode and decode mode to use:
-    covertdata encode "filename.bmp" "data_to_encode"
+To encode and decode data, execute the following commands
+    covertdata encode "filename.bmp" "data_to_encode" "algorithm"
     covertdata decode "filanem.bmp" "name_of_output"
 
-Decode will print out the original file name of the encoded data.
+For comprehensive information on usage and the algorithms available type
+    covertdata -help
+
+All data for encryption and decryption is stored within the "decrypt_times" and
+"encrypt_times files created on first run. 
 
 Requires
    gcc
+   mcrypt
    Linux
 
 To Compile
-   gcc *.c -o covertdata
+   gcc *.c -lmcrypt -o covertdata
 
 Included
    img_manip.h
    img_manip.c
+   encrypt.c
    
-
+Installation script is located in the file install_stglego. Execute as so:
+    chmod +x install_stglego
+    sudo ./install_stglego

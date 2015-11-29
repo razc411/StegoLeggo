@@ -74,7 +74,7 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 	exit(1);
     }
 
-    fprintf(record, "%s %.5f\n", algorithm, timespent);
+    fprintf(record, "%.5f\n", timespent);
     
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
@@ -209,7 +209,7 @@ int decrypt_data(char ** buffer, int buffer_len) {
 	exit(1);
     }
 
-    fprintf(record, "%s %.5f\n", algorithm, timespent);
+    fprintf(record, "%.5f\n", algorithm, timespent);
     
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
