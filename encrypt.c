@@ -43,10 +43,15 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
     if(writeKeyToFile(IV, iv_len, key, key_len, algorithm)){
 	return 0;
     }
+
+    printf("Encrypting data with algorithm %s...\n", algorithm);
        
     //encrypt and return
     mcrypt_generic_init(td, key, key_len, IV);
 
+    struct timespec start_time, end_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time); 
+    
     while(data_read < buffer_len){
 
 	memcpy(block_buffer, *buffer + data_read, blocksize);
@@ -55,6 +60,21 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 
 	data_read += blocksize;
     }
+
+    
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    float timespent = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) -
+	((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
+
+    printf("Encryption took about %.5f seconds\n", timespent);
+	   
+    FILE * record;
+    if(!(record = fopen("encrypt_times", "a"))){
+	printf("Failed to open encrypt records file.\n");
+	exit(1);
+    }
+
+    fprintf(record, "%s %.5f\n", algorithm, timespent);
     
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
@@ -164,6 +184,10 @@ int decrypt_data(char ** buffer, int buffer_len) {
     char * block_buffer = calloc(1, blocksize);
     size_t data_read = 0;
 
+    
+    struct timespec start_time, end_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+
     while(data_read < buffer_len){
 
 	memcpy(block_buffer, *buffer + data_read, blocksize);
@@ -173,7 +197,20 @@ int decrypt_data(char ** buffer, int buffer_len) {
 	data_read += blocksize;
     }
 
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    float timespent = ((double)end_time.tv_sec + 1.0e-9*end_time.tv_nsec) -
+	((double)start_time.tv_sec + 1.0e-9*start_time.tv_nsec);
 
+    printf("Decryption took about %.5f seconds\n", timespent);
+	   
+    FILE * record;
+    if(!(record = fopen("decrypt_times", "a"))){
+	printf("Failed to open decrypt records file.\n");
+	exit(1);
+    }
+
+    fprintf(record, "%s %.5f\n", algorithm, timespent);
+    
     mcrypt_generic_deinit(td);
     mcrypt_module_close(td);
   

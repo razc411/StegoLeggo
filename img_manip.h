@@ -1,5 +1,5 @@
 /* Header of img_manip.h
-   Contains the structures and function headers for img_manip.c.   
+   Contains the structures and function headers for img_manip.c/encrypt.c.   
 */
 
 #include <stdio.h>
@@ -9,6 +9,7 @@
 #include <mcrypt.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #pragma pack(push,1)
 struct BMP_FHDR
@@ -43,6 +44,7 @@ struct BITINFOHDR
 #define DATA 1
 #define MAXFNAME 1000
 #define MAXSIZE 100
+#define NUM_ALGS 15
 
 int decrypt_data(char ** buffer, int buffer_len);
 void genRandom(void * buffer, int buffer_len);

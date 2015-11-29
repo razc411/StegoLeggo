@@ -37,19 +37,35 @@
 //position variable for bit setting
 static int pos = 0;
 char * pixels;
+const char*  algs[] = {"blowfish", "des", "tripledes", "gost", "cast-128", "xtea",
+		"rc2", "twofish", "cast-256", "saferplus", "loki97", "serpent",
+		       "rjindael-128", "rjindael-192", "rjindael-256"};
 
 int main(int argc, char ** argv)
 {
-    int type;
+    int type, i;
     FILE *image;
     struct BMP_FHDR fhdr;
     struct BITINFOHDR infohdr;
-    char * algorithm = "rijndael-128";
+    char * algorithm;
     
     if(argc < 2)
     {
 	exit(1);
     }
+
+    if(strcmp(argv[1], "-help") == 0)
+    {
+	printf("To decrypt data, type covertdata decode <image name> <output/file>\n");
+	printf("To encrypt data, type covertdata encode <image name> <file/to/encode> <algorithm>\n");
+	printf("There are 15 possible algorithms, they are as follows:\n");
+	for(i = 0; i < NUM_ALGS; i++)
+	{
+	    printf("     %s\n", algs[i]);
+	}
+    }
+
+    algorithm = argv[4];
     
     image = fopen(argv[2], "rwb");
     if(!image)
