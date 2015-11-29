@@ -67,7 +67,7 @@ int encrypt_data(char * algorithm, char ** buffer, int buffer_len) {
 void genRandom(void * buffer, int buffer_len){
 
     int i, readLen = 0, res = 0;
-    int devRand = open("/dev/random", O_RDONLY);
+    int devRand = open("/dev/urandom", O_RDONLY);
     
     while(readLen < buffer_len){
 	res = read(devRand, buffer + readLen, (buffer_len - readLen));

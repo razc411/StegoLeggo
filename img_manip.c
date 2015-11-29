@@ -1,17 +1,17 @@
 /*
-*	Program:	Covert Data Integrator
-*	Author: 	Ramzi Chennafi
-*	Date: 		October 4 2015
+*	Program:	CData Media Final
+*	Author: 	Ramzi Chennafi and Chris Hunter
+*	Date: 		November 15 2015
 *	Functions:
 *       int main(int argc, char ** argv)	
-*       void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename)
-*       unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data)
-*       void decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * output)       
-*       unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int headerflag)        
-*       unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
+*       void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * filename)
+*       char * insert_encode_data(char * data, int data_size)
+*       void decode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * output)       
+*       char * grab_decode_header(int maxsize, int headerflag)        
+*       char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
 *       int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr)
-*       void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char * pixels)
-*       unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to)     
+*       void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr)
+*       char move_bit(char c1, int from, char c2, int to)     
 * 
 *	Description
 *       Stegonography program for hiding data into bitmap images. Uses the least significant bit of each byte of the
@@ -93,16 +93,14 @@ int main(int argc, char ** argv)
     return 0;
 }
 /*
-*	Function: 	void encode_data_basic(struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, unsigned char * pixels, char * filename)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
+*	Function: 	void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * filename)
 *	Returns:	void
 *
 *	Notes
 *       Encodes the data into the data from the bitmap file.
+*         char * algorithm - the algorithm to encrypt with
 *         struct BITINFOHDR * infohdr - info header of the bitmap file
 *         struct BMP_FHDR * fhdr - the signature header of the bitmap file
-*         unsigned char * pixels - the pixel array of the bitmap file
 *         char * filename - the filename of the data to encode into the image
 */
 void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP_FHDR *fhdr, char * filename)
@@ -139,13 +137,13 @@ void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP
     esize = encrypt_data(algorithm, &data, esize);
     printf("Data Size: %d\n", esize);
     sprintf(strsize, "%d", esize);
-    
+
     //filename
-    insert_encode_data(filename);
+    insert_encode_data(filename, strlen(filename));
     //set the file size
-    insert_encode_data(strsize);
+    insert_encode_data(strsize, strlen(strsize));
     //set the encode data
-    insert_encode_data(data);
+    insert_encode_data(data, esize);
 
     write_bmpi(fhdr, infohdr);
 
@@ -155,20 +153,18 @@ void encode_data_basic(char * algorithm, struct BITINFOHDR * infohdr, struct BMP
     free(data);
 }
 /*
-*	Function: 	unsigned char * insert_encode_data(unsigned char * pixels, unsigned char * data)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
-*	Returns:	unsigned char * - the modified pixel array
+*	Function: 	char * insert_encode_data(char * data, int data_size)
+*	Returns:	char * - the modified pixel array
 *
 *	Notes
 *	Inserts data from the data array into the pixel array.
-*           unsigned char * pixels - the pixel array
-*           unsigned char * data - the data to put into the pixel array
+*           char * data - the data to put into the pixel array
+*           int data_size - the size of the data array
 */
-void insert_encode_data(char * data)
+void insert_encode_data(char * data, int data_size)
 {
     size_t c, p;
-    for(c = 0; c < strlen(data) + 1; c++)
+    for(c = 0; c < data_size + 1; c++)
     {
     	for(p = 0; p < BYTESIZE; p++)
     	{
@@ -178,14 +174,11 @@ void insert_encode_data(char * data)
     }
 }
 /*
-*	Function: 	void decode_data_basic(unsigned char * pixels, char * output)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
+*	Function: 	void decode_data_basic(char * output)
 *	Returns:	void
 *
 *	Notes
 *       Decodes data hidden insidei of the image file data from the pixels.
-*          unsigned char * pixels - the pixel array to retrieve data from
 *          char * output - the name of the file to output retrieved data to
 */
 void decode_data_basic(char * output)
@@ -220,15 +213,12 @@ void decode_data_basic(char * output)
     free(fsize);
 }
 /*
-*	Function: 	unsigned char * grab_decode_header(unsigned char * pixels, int maxsize, int headerflag)
-*	Author: 	Raiimzi Chennafi
-*	Date:		October 4 2015
-*	Returns:	unsigned char * - an array containing the data retrieved
+*	Function: 	char * grab_decode_header(int maxsize, int headerflag)
+*	Returns:	char * - an array containing the data retrieved
 *
 *	Notes
 *       Grabs the encoded data from the pixel data based on the maxsize. If header flag is set to header, 
 *       will check for null termination, if set to DATA, will not.
-*            unsigned char * pixels - the pixel array to get data out of
 *            int maxsize - the size of the array to retrieve from the pixels
 *            int headerflag - can be set to DATA or HEADER based on the data you want
 */
@@ -252,10 +242,8 @@ char * grab_decode_header(int maxsize, int headerflag)
     return temparray;
 }
 /*
-*	Function:       unsigned char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
-*	Returns:	unsigned char array containing the pixel data of the image
+*	Function:       char * grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
+*	Returns:	char array containing the pixel data of the image
 *
 *	Notes
 *	Grabs the pixel data from a bitmap file.
@@ -272,16 +260,13 @@ void grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image)
     }
 }
 /*
-*	Function: 	void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr, unsigned char * pixels)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
+*	Function: 	void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr)
 *	Returns:	void
 *
 *	Notes
 *	Writes a bmp file using the supplied headers and pixels.
 *             struct BMP_FHDR * fhdr -  the signature header of the bitmap
 *             struct BITINFOHDR * infohdr - the info header of the bitmap
-*             unsigned char * pixels - the pixel array to write
 */
 void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr)
 {
@@ -301,8 +286,6 @@ void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr)
 }
 /*
 *	Function: 	int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr)
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
 *	Returns:	int
 *                       - 0 if not a bitmap, BMPINFO if a bitmap
 *
@@ -329,10 +312,8 @@ int checkbmp_type(struct BITINFOHDR * infohdr, struct BMP_FHDR * fhdr)
     return 0;
 }
 /*
-*	Function:       unsigned char move_bit(unsigned char c1, int from, unsigned char c2, int to) 	
-*	Author: 	Ramzi Chennafi
-*	Date:		October 4 2015
-*	Returns:	unsigned char - the character modified by c1 in c2
+*	Function:       char move_bit(char c1, int from, char c2, int to) 	
+*	Returns:	char - the character modified by c1 in c2
 *
 *	Notes
 *       Changes the "to" bit of c2 to the bit of c1 at "from". Returns the modified character.

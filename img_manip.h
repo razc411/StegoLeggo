@@ -48,7 +48,7 @@ int decrypt_data(char ** buffer, int buffer_len);
 void genRandom(void * buffer, int buffer_len);
 int encrypt_data(char * algorithm, char ** buffer, int buffer_len);
 int writeKeyToFile(char * IV, int iv_len,  char * key, int key_len, char * algorithm);
-void insert_encode_data(char * data);
+void insert_encode_data(char * data, int data_size);
 char * grab_decode_header(int maxsize, int headerflag);
 void write_bmpi(struct BMP_FHDR * fhdr, struct BITINFOHDR * infohdr);
 void grab_bmpinfo_pixels(struct BITINFOHDR * infohdr, FILE * image);
