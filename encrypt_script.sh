@@ -15,8 +15,8 @@ for p in ${algorithms[@]}; do
     done
 
     echo $p finished!
-    mv encrypt_times Data/${fnames[$fp]}
-    mv decrypt_times Data/${dfnames[$fp]}
+    mv encrypt_times Data/encrypt/${fnames[$fp]}
+    mv decrypt_times Data/decrypt/${dfnames[$fp]}
 
     ((fp+=1))
 done
